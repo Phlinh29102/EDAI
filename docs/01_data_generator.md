@@ -19,16 +19,16 @@ The goal is to support downstream ingestion, transformation, and feature enginee
 |-------|-------|------------|
 | users | one per user | user_id, user_age, country, user_subscription, signup_ts |
 | videos | one per video | video_id, video_title, video_genre, video_duration, upload_date |
-| playback_history | one per session | history_id, user_id, video_id, playback_date, watch_hours |
-| interactions | one per interaction | interaction_id, user_id, video_id, interaction_type, comments, likes |
-| ad_impressions | one per impression | impression_id, user_id, video_id, advertiser_id, cost_nanos, midpoint, thirdQuartile |
+| playback_history | one per session | session_id, history_id, user_id, video_id, playback_date, watch_hours |
+| interactions | one per interaction | interaction_id, user_id, video_id, interaction_type, likes |
+| ad_impressions | one per impression | impression_id, user_id, video_id, advertiser_id, cost_nanos, midpoint, third_quartile |
 
 ### 2.2 Offline Data Problems
 
 **Compulsory:**
 - **Skew**: Severe popularity bias following a Zipfian distribution — ~80% of views concentrate on 20% of content, leaving a long tail of underrepresented media. Ad CTR is heavily right-skewed (most impressions yield zero clicks). Churn data is imbalanced at ~14–15% positive rate.
 - **High cardinality**: `user_id`, `video_id`, `history_id`, and `impression_id` are unique identifiers spanning millions of daily events.
-- **Schema evolution**: ~60% of historical partitions predate the schema change date and are missing ad tracking fields (`midpoint`, `thirdQuartile`) introduced in the updated IAB VAST tracking spec. These fields are NULL in older partitions and must be handled downstream.
+- **Schema evolution**: ~60% of historical partitions predate the schema change date and are missing ad tracking fields (`midpoint`, `third_quartile`) introduced in the updated IAB VAST tracking spec. These fields are NULL in older partitions and must be handled downstream.
 
 **Optional chosen:** 2% duplicate rate in `playback_history` and `interactions`, caused by redundant log entries from distributed CDN nodes or client-side retries during network buffering.
 
@@ -40,14 +40,14 @@ The goal is to support downstream ingestion, transformation, and feature enginee
 
 ### 3.1 Event Stream Schema
 
-Single unified Kafka topic with `event_type` to ingest high-velocity events from diverse sources.
+Single unified Kafka topic with `event_type` field.
 
 Key columns:
 - `event_id`, `event_type` (`playback_start` | `pause` | `skip` | `ad_impression` | `ad_click` | `subscription_cancel`)
 - `event_timestamp`, `created_ts` (client device time vs. stream storage ingestion time)
 - `user_id`, `session_id`, `device_type`, `platform` (`smart_tv` | `web` | `mobile_app`)
 - `video_id` (nullable), `genre_id` (nullable), `playback_position_seconds` (nullable), `ad_campaign_id` (nullable)
-- `midpoint` (nullable), `thirdQuartile` (nullable) — ad tracking fields aligned with offline schema
+- `midpoint` (nullable), `third_quartile` (nullable) — ad tracking fields aligned with offline schema
 
 ### 3.2 Streaming Data Problems
 
@@ -73,7 +73,7 @@ Compute from user viewing history, interaction, and streaming event data:
 
 **Streaming (rolling windows):**
 - `f_stream_videos_started_30m` — count of `playback_start` events in last 30 minutes
-- `f_stream_ad_completion_ratio_60m` — ratio of ad impressions reaching `midpoint` (50%) or `thirdQuartile` (75%) in last 60 minutes
+- `f_stream_ad_completion_ratio_60m` — ratio of ad impressions reaching `midpoint` (50%) or `third_quartile` (75%) in last 60 minutes
 - `f_stream_early_skip_rate_60m` — rate of `skip` events within the first few seconds (signals poor recommendations)
 - `f_stream_burst_activity_flag` — binary flag for high-frequency event spikes (e.g., live sports, premieres)
 
@@ -87,11 +87,13 @@ Merge offline + streaming for a unified feature table keyed by `user_id`, refres
 n_users: 120000
 n_videos: 45000
 days_history: 180
+advertiser_ids_pool: 75 #~75 unique advertisers IDs (no need for advertiser table)
+cost_nano_range: [500000000, 5000000000] #cost range in nanoseconds, 0.5$-5$ per impression
 skew_ratio_popularity: 0.80   # 80% of views go to 20% of catalog (Zipf's Law)
 skew_ratio_genre: 0.75        # Heavy skew towards mainstream genres (Action, Drama)
 churn_rate_baseline: 0.145    # ~14.5% churn rate to simulate class imbalance
 duplicate_rate_offline: 0.02  # 2% duplicate rate from CDN log redundancies
-schema_change_date: "2025-07-01"  # Date when midpoint/thirdQuartile ad tracking was introduced
+schema_change_date: "2026-01-29"  # Date when midpoint/third_quartile ad tracking was introduced
 base_events_per_min: 10000
 burst_multiplier: 50          # Traffic spikes for live programming or season premieres
 burst_windows: ["20:00-20:30", "21:00-21:30"]  # Evening prime time peaks
@@ -110,7 +112,7 @@ random_seed: 42
 3. Quality report:
    - Skew distribution: verify Zipfian video popularity and right-skewed CTR.
    - Cardinality: `approx_count_distinct` by `user_id`, `video_id`, `ad_campaign_id`.
-   - Schema evolution: verify NULLs in pre-`schema_change_date` partitions for `midpoint` / `thirdQuartile`.
+   - Schema evolution: verify NULLs in pre-`schema_change_date` partitions for `midpoint` / `third_quartile`.
    - Duplicate rate before/after dedup (offline and streaming).
    - Streaming burst, late arrival, and duplicate rates.
 4. Write-up: explain (a) Zipf distribution for realistic media consumption simulation, (b) delayed event sync logic for offline viewing, (c) duplicate injection strategy for both offline and streaming layers, and (d) schema evolution handling for backward compatibility.
@@ -120,7 +122,9 @@ random_seed: 42
 ## 7. Implementation Tips
 
 - Use deterministic seeds for reproducibility.
-- Dedup keys: `history_id` / `interaction_id` (offline); `event_id` alone (streaming — duplicates share the same `event_id` but may differ in `created_ts`).
+- Dedup keys: `history_id` / `interaction_id` (offline); `event_id` alone (streaming - duplicates share the same `event_id` but may differ in `created_ts`).
 - Simulate popularity bias using an inverse power-law (Zipfian) distribution for `video_id` interaction frequencies.
 - Enforce referential integrity: all `user_id` and `video_id` values in streaming events must exist in the offline dimension tables.
-- Generate `midpoint` / `thirdQuartile` as NULL for records before `schema_change_date` in both offline and streaming layers to ensure consistent schema evolution behavior.
+- Generate `midpoint` / `third_quartile` as NULL for records before `schema_change_date` in both offline and streaming layers to ensure consistent schema evolution behavior.
+- session_id in playback_history links multiple video watches within a single viewing session (useful for sequential recommendation model downstreams).
+- advertiser_id is a random pool of ~75 unique IDs with no dimension table; sufficient for grouping and CTR analysis. 

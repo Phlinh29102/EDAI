@@ -1,0 +1,31 @@
+n_users: 120000
+n_videos: 45000
+days_history: 180
+advertiser_ids_pool: 75
+cost_nanos_range: [500000000, 5000000000]  # $0.50 – $5.00 per impression
+
+# Popularity distributions (Zipf-like)
+popular_catalog_ratio: 0.20    # 20% most popular content gets 80% of views
+popular_genre_ratio: 0.25        # 25% main genres dominate (Action, Drama, Comedy)
+
+churn_rate_baseline: 0.145       # 14.5% positive churn rate → imbalanced
+duplicate_rate_offline: 0.02     # 2% duplicate rows in offline tables
+duplicate_rate_stream: 0.02      # 2% duplicate events in stream
+
+schema_change_date: "2026-01-29"  # When midpoint/thirdQuartile columns were introduced
+
+# Streaming behavior
+base_events_per_min: 10000       # Normal baseline
+burst_multiplier: 50             # Traffic spikes by 50x during live events
+burst_windows: ["20:00-20:30", "21:00-21:30"]  # Evening prime time bursts
+
+# Late arrivals (offline mobile viewing sync after reconnect)
+late_arrival_rate: 0.15          # 15% of events are late arrivals
+late_delay_min_max: [1, 48]    # 1–48 hours delay (device reconnects)
+
+random_seed: 42
+
+data_dir:
+  offline: data/offline
+  streaming: data/streaming
+  features: data/features
