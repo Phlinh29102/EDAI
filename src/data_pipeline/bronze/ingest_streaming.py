@@ -1,4 +1,4 @@
-"""Consume Kafka media events into the Bronze raw_media_events dataset."""
+"""Streaming Bronze ingestion for Kafka media_events messages."""
 from __future__ import annotations
 
 import argparse
@@ -21,6 +21,95 @@ DEFAULT_POLL_TIMEOUT = 1.0
 _STOP_REQUESTED = False
 
 
+class StreamingBronzeIngestor:
+    """Consume Kafka JSON events into the raw_media_events Bronze table."""
+
+    def __init__(
+        self,
+        bootstrap_servers: str = DEFAULT_BOOTSTRAP_SERVERS,
+        topic: str = DEFAULT_TOPIC,
+        group_id: str = DEFAULT_GROUP_ID,
+        output_path: str | Path = DEFAULT_OUTPUT_PATH,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        poll_timeout: float = DEFAULT_POLL_TIMEOUT,
+        auto_offset_reset: str = "earliest",
+    ) -> None:
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+
+        self.bootstrap_servers = bootstrap_servers
+        self.topic = topic
+        self.group_id = group_id
+        self.output_path = Path(output_path)
+        self.batch_size = batch_size
+        self.poll_timeout = poll_timeout
+        self.auto_offset_reset = auto_offset_reset
+        self._last_written_paths: List[str] = []
+        self._last_consumed_count = 0
+
+    def ingest(self, max_messages: Optional[int] = None) -> int:
+        """Consume Kafka messages and write append-only Bronze Parquet batches."""
+        if max_messages is not None and max_messages < 0:
+            raise ValueError("max_messages must be non-negative")
+
+        consumer_cls = _load_kafka_consumer()
+        consumer = consumer_cls(
+            {
+                "bootstrap.servers": self.bootstrap_servers,
+                "group.id": self.group_id,
+                "auto.offset.reset": self.auto_offset_reset,
+                "enable.auto.commit": False,
+            }
+        )
+        consumer.subscribe([self.topic])
+
+        batch: List[Dict[str, Any]] = []
+        consumed = 0
+        written_paths: List[str] = []
+
+        _install_signal_handlers()
+        try:
+            while not _should_stop(consumed, max_messages):
+                message = consumer.poll(self.poll_timeout)
+                if message is None:
+                    continue
+
+                error = message.error()
+                if error is not None:
+                    raise RuntimeError(f"Kafka consume failed: {error}")
+
+                batch.append(build_bronze_record(message))
+                consumed += 1
+
+                if len(batch) >= self.batch_size:
+                    written_paths.append(write_bronze_batch(batch, self.output_path))
+                    consumer.commit(asynchronous=False)
+                    batch.clear()
+
+            if batch:
+                written_paths.append(write_bronze_batch(batch, self.output_path))
+                consumer.commit(asynchronous=False)
+        finally:
+            consumer.close()
+
+        self._last_consumed_count = consumed
+        self._last_written_paths = written_paths
+        return consumed
+
+    def summary(self) -> Dict[str, Any]:
+        """Return the latest streaming Bronze ingestion summary."""
+        return {
+            "ingestor": self.__class__.__name__,
+            "bootstrap_servers": self.bootstrap_servers,
+            "topic": self.topic,
+            "group_id": self.group_id,
+            "output_path": str(self.output_path),
+            "batch_size": self.batch_size,
+            "consumed_count": self._last_consumed_count,
+            "written_paths": list(self._last_written_paths),
+        }
+
+
 def consume_to_bronze(
     bootstrap_servers: str = DEFAULT_BOOTSTRAP_SERVERS,
     topic: str = DEFAULT_TOPIC,
@@ -31,65 +120,20 @@ def consume_to_bronze(
     poll_timeout: float = DEFAULT_POLL_TIMEOUT,
     auto_offset_reset: str = "earliest",
 ) -> int:
-    """
-    Consume Kafka JSON events and write append-only Bronze Parquet batches.
-
-    Bronze records preserve the raw Kafka payload plus ingest metadata required
-    by the schema design: ingest timestamp, Kafka topic, partition, offset, and
-    source offset. Selected event fields are also copied for operational checks;
-    Silver should still parse and validate the raw payload into the unified
-    event schema.
-    """
-    if batch_size <= 0:
-        raise ValueError("batch_size must be positive")
-    if max_messages is not None and max_messages < 0:
-        raise ValueError("max_messages must be non-negative")
-
-    consumer_cls = _load_kafka_consumer()
-    consumer = consumer_cls(
-        {
-            "bootstrap.servers": bootstrap_servers,
-            "group.id": group_id,
-            "auto.offset.reset": auto_offset_reset,
-            "enable.auto.commit": False,
-        }
-    )
-    consumer.subscribe([topic])
-
-    output_root = Path(output_path)
-    batch: List[Dict[str, Any]] = []
-    consumed = 0
-
-    _install_signal_handlers()
-    try:
-        while not _should_stop(consumed, max_messages):
-            message = consumer.poll(poll_timeout)
-            if message is None:
-                continue
-
-            error = message.error()
-            if error is not None:
-                raise RuntimeError(f"Kafka consume failed: {error}")
-
-            batch.append(build_bronze_record(message))
-            consumed += 1
-
-            if len(batch) >= batch_size:
-                write_bronze_batch(batch, output_root)
-                consumer.commit(asynchronous=False)
-                batch.clear()
-
-        if batch:
-            write_bronze_batch(batch, output_root)
-            consumer.commit(asynchronous=False)
-    finally:
-        consumer.close()
-
-    return consumed
+    """Consume Kafka JSON events and write append-only Bronze Parquet batches."""
+    return StreamingBronzeIngestor(
+        bootstrap_servers=bootstrap_servers,
+        topic=topic,
+        group_id=group_id,
+        output_path=output_path,
+        batch_size=batch_size,
+        poll_timeout=poll_timeout,
+        auto_offset_reset=auto_offset_reset,
+    ).ingest(max_messages=max_messages)
 
 
 def build_bronze_record(message: Any) -> Dict[str, Any]:
-    """Build one Bronze raw_media_events record from a Kafka message."""
+    """Build one raw_media_events Bronze record from a Kafka message."""
     ingest_ts = datetime.now(timezone.utc)
     raw_payload = _decode_bytes(message.value())
     parsed_payload, parse_error = _parse_json_payload(raw_payload)
@@ -98,7 +142,7 @@ def build_bronze_record(message: Any) -> Dict[str, Any]:
     partition = int(message.partition())
     offset = int(message.offset())
 
-    record = {
+    return {
         "raw_payload": raw_payload,
         "ingest_ts": ingest_ts,
         "source_file": None,
@@ -116,14 +160,13 @@ def build_bronze_record(message: Any) -> Dict[str, Any]:
         "session_id": _payload_value(parsed_payload, "session_id"),
         "video_id": _payload_value(parsed_payload, "video_id"),
     }
-    return record
 
 
 def write_bronze_batch(
     records: Iterable[Dict[str, Any]],
     output_path: str | Path = DEFAULT_OUTPUT_PATH,
 ) -> str:
-    """Write a Bronze batch as Parquet partitioned by ingest hour."""
+    """Write a raw_media_events Bronze batch as Parquet partitioned by ingest hour."""
     batch = list(records)
     if not batch:
         raise ValueError("records must not be empty")
@@ -140,7 +183,7 @@ def write_bronze_batch(
     except ImportError as exc:
         raise RuntimeError(
             "Missing dependency 'pyarrow'. Install project dependencies before "
-            "running the Kafka Bronze consumer."
+            "running the streaming Bronze ingestor."
         ) from exc
 
     table = pa.Table.from_pylist(batch, schema=_bronze_schema(pa))
@@ -149,7 +192,7 @@ def write_bronze_batch(
 
 
 def main() -> None:
-    """Parse CLI args and consume Kafka media_events into Bronze storage."""
+    """Run streaming Bronze ingestion from the command line."""
     parser = argparse.ArgumentParser(
         description="Consume Kafka media_events JSON messages into Bronze Parquet.",
     )

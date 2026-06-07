@@ -7,8 +7,12 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
-from data_generator.bronze.offline_ingest import OfflineBronzeIngestor
-from kafka.consumer import build_bronze_record, write_bronze_batch
+from data_pipeline.bronze.ingest_offline import OfflineBronzeIngestor
+from data_pipeline.bronze.ingest_streaming import (
+    StreamingBronzeIngestor,
+    build_bronze_record,
+    write_bronze_batch,
+)
 
 
 def test_offline_bronze_ingestor_preserves_rows_and_adds_metadata(tmp_path):
@@ -104,3 +108,23 @@ def test_kafka_consumer_bronze_record_and_writer(tmp_path):
     assert len(written) == 1
     assert written.loc[0, "raw_payload"] == json.dumps(payload)
     assert written.loc[0, "source_offset"] == "media_events:1:42"
+
+
+def test_streaming_bronze_ingestor_summary_defaults(tmp_path):
+    ingestor = StreamingBronzeIngestor(
+        bootstrap_servers="localhost:9092",
+        topic="media_events",
+        group_id="test_group",
+        output_path=tmp_path / "raw_media_events",
+        batch_size=25,
+    )
+
+    summary = ingestor.summary()
+
+    assert summary["ingestor"] == "StreamingBronzeIngestor"
+    assert summary["topic"] == "media_events"
+    assert summary["group_id"] == "test_group"
+    assert summary["output_path"] == str(tmp_path / "raw_media_events")
+    assert summary["batch_size"] == 25
+    assert summary["consumed_count"] == 0
+    assert summary["written_paths"] == []

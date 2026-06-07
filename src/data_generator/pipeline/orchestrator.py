@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from data_generator.bronze.offline_ingest import OfflineBronzeIngestor
 from data_generator.core.config import GeneratorConfig
 from data_generator.core.schema import DataSchema
 from data_generator.core.utils import RandomDataUtils
 from data_generator.features.feature_engineer import FeatureEngineer
 from data_generator.offline.offline_data_generator import OfflineDataGenerator
 from data_generator.streaming.stream_data_generator import StreamDataGenerator
+from data_pipeline.bronze.ingest_offline import OfflineBronzeIngestor
 
 
 class PipelineOrchestrator:

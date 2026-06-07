@@ -1,0 +1,1 @@
+"""Lineage emission modules."""

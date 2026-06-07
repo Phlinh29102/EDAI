@@ -18,12 +18,7 @@ def ensure_topic(
     replication_factor: int = DEFAULT_REPLICATION_FACTOR,
     timeout: float = 30.0,
 ) -> bool:
-    """
-    Ensure a Kafka topic exists.
-
-    Returns:
-        bool: True if the topic was created, False if it already existed.
-    """
+    """Ensure a Kafka topic exists."""
     if num_partitions <= 0:
         raise ValueError("num_partitions must be positive")
     if replication_factor <= 0:
@@ -42,10 +37,9 @@ def ensure_topic(
         replication_factor=replication_factor,
     )
     futures = admin.create_topics([topic_spec], request_timeout=timeout)
-    future = futures[topic]
 
     try:
-        future.result(timeout=timeout)
+        futures[topic].result(timeout=timeout)
     except kafka_exception_cls as exc:
         error = exc.args[0]
         if _is_topic_already_exists(error):
@@ -91,12 +85,7 @@ def delete_topic(
     bootstrap_servers: str = DEFAULT_BOOTSTRAP_SERVERS,
     timeout: float = 30.0,
 ) -> bool:
-    """
-    Delete a Kafka topic if it exists.
-
-    Returns:
-        bool: True if deletion was requested, False if the topic did not exist.
-    """
+    """Delete a Kafka topic if it exists."""
     admin_client, _, kafka_exception_cls = _load_kafka_admin()
     if topic not in set(list_topics(bootstrap_servers, timeout=timeout)):
         return False

@@ -119,9 +119,7 @@ class OfflineBronzeIngestor:
     ) -> str:
         ingest_date = self._ingest_date(df)
         output_dir = (
-            self.output_path
-            / f"raw_{source_table}"
-            / f"ingest_date={ingest_date}"
+            self.output_path / f"raw_{source_table}" / f"ingest_date={ingest_date}"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
         output_file = output_dir / f"batch-{batch_id}.parquet"

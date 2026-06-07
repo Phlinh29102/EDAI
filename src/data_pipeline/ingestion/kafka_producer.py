@@ -44,6 +44,7 @@ def publish_events(
     published = 0
 
     def _delivery_callback(error, message) -> None:
+        del message
         if error is not None:
             raise RuntimeError(f"Kafka delivery failed: {error}")
 
@@ -163,7 +164,7 @@ def _read_avro_file(path: Path) -> List[Dict[str, Any]]:
 
 
 def _decode_map(data: bytes, offset: int) -> Tuple[Dict[str, bytes], int]:
-    """Decode an Avro map (bytes values) starting at *offset*."""
+    """Decode an Avro map with bytes values starting at offset."""
     values: Dict[str, bytes] = {}
     while True:
         block_count, offset = _decode_long(data, offset)
@@ -183,7 +184,7 @@ def _decode_record(
     offset: int,
     schema: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
-    """Decode a single Avro record according to *schema* starting at *offset*."""
+    """Decode a single Avro record according to schema."""
     record: Dict[str, Any] = {}
     for field in schema["fields"]:
         record[field["name"]], offset = _decode_value(data, offset, field["type"])
@@ -191,7 +192,7 @@ def _decode_record(
 
 
 def _decode_value(data: bytes, offset: int, schema_type: Any) -> Tuple[Any, int]:
-    """Decode a single Avro value matching *schema_type* starting at *offset*."""
+    """Decode a single Avro value matching schema_type."""
     if isinstance(schema_type, list):
         union_index, offset = _decode_long(data, offset)
         selected_type = schema_type[union_index]
@@ -211,20 +212,20 @@ def _decode_value(data: bytes, offset: int, schema_type: Any) -> Tuple[Any, int]
 
 
 def _decode_string(data: bytes, offset: int) -> Tuple[str, int]:
-    """Decode an Avro utf-8 string starting at *offset*."""
+    """Decode an Avro utf-8 string starting at offset."""
     value, offset = _decode_bytes(data, offset)
     return value.decode("utf-8"), offset
 
 
 def _decode_bytes(data: bytes, offset: int) -> Tuple[bytes, int]:
-    """Decode an Avro bytes value (length-prefixed) starting at *offset*."""
+    """Decode an Avro bytes value starting at offset."""
     size, offset = _decode_long(data, offset)
     end = offset + size
     return data[offset:end], end
 
 
 def _decode_long(data: bytes, offset: int) -> Tuple[int, int]:
-    """Decode an Avro zig-zag varint long starting at *offset*."""
+    """Decode an Avro zig-zag varint long starting at offset."""
     shift = 0
     result = 0
     while True:
