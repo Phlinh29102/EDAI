@@ -1,1 +1,32 @@
-# Config nhỏ dùng cho pytest
+n_users: 12
+n_videos: 8
+days_history: 14
+
+n_playback_sessions: 20
+n_interactions: 18
+n_ad_impressions: 16
+
+advertiser_ids_pool: 4
+cost_nanos_range: [500000000, 5000000000]
+
+skew_ratio_popularity: 0.8
+skew_ratio_genre: 0.75
+
+churn_rate_baseline: 0.145
+duplicate_rate_offline: 0.0
+duplicate_rate_stream: 0.0
+
+schema_change_date: "2026-01-29"
+
+base_events_per_min: 100
+burst_multiplier: 5
+burst_windows: ["20:00-20:30"]
+late_arrival_rate: 0.15
+late_delay_min_max: [1, 48]
+
+random_seed: 42
+
+data_dir:
+  offline: data/test/offline
+  streaming: data/test/streaming
+  features: data/test/features

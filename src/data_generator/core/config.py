@@ -1,4 +1,4 @@
-"""GeneratorConfig - load và validate config từ YAML."""
+"""GeneratorConfig - load and validate config from YAML."""
 from typing import Any, Dict, Optional
 from pathlib import Path
 import yaml
@@ -12,7 +12,6 @@ class GeneratorConfig:
         Returns:
             None
         """
-        # TODO: Initialize YAML parser and load the config file
         self.config_path = config_path
         self.config = yaml.safe_load(config_path.read_text())
 
@@ -33,12 +32,3 @@ class GeneratorConfig:
             Dict[str, Any]: The complete configuration dictionary.
         """
         return self.config
-
-    def summary(self) -> str:
-        """
-        Generate a summary string of the current configuration.
-        Returns:
-            str: A formatted summary of the configuration.
-        """
-        content = yaml.dump(self.config, indent=2, sort_keys=False)
-        return f"Config Summary:\n{content}"

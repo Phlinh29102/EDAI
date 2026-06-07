@@ -1,13 +1,40 @@
-# Generate Data
+# Coursework — Media Platform Data Generator
+
+## Quick Start
 
 ```bash
-# Run the pipeline
-uv run python -m coursework  
+# Install dependencies
+make install
 
-# Run the tests
-uv run pytest tests/ -v      
+# Run the full pipeline (offline → streaming → features → quality report)
+make run
 
-# Generate and test (Makefile shortcuts)
-make generate  
-make test  
+# Run with a different config
+make run ARGS="config/test.yaml"
+
+# Run tests
+make test
 ```
+
+## Commands
+
+| Command | Action |
+|---|---|
+| `make install` | Install dependencies (`uv sync`) |
+| `make run` | Run pipeline with `config/default.yaml` |
+| `make run ARGS="config/test.yaml"` | Run pipeline with test config |
+| `make test` | Run all tests |
+| `make clean` | Remove generated data |
+
+## Config
+
+Edit `config/default.yaml` to control data volume, skew, burst windows, and feature thresholds.
+
+## Outputs
+
+| Stage | Format | Location |
+|---|---|---|
+| Offline tables | Parquet | `data/offline/{table}/` |
+| Streaming events | Avro | `data/streaming/hour=YYYYMMDDHH/events.avro` |
+| Features | Parquet | `data/features/refresh_ts={ts}/features.parquet` |
+| Quality report | Text | `data/reports/quality_report.txt` |

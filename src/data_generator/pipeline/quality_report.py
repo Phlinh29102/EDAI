@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from data_generator.core.config import GeneratorConfig
+from coursework.core.config import GeneratorConfig
 
 
 class QualityReport:

@@ -2,7 +2,7 @@
 from typing import Optional, Any, List
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class RandomDataUtils:
     def __init__(self, seed: Optional[int] = None):
@@ -11,6 +11,7 @@ class RandomDataUtils:
         Args:
             seed (Optional[int]): Seed value for random number generator reproducibility.
         """
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
 
     def zipf_weights(self, n: int, skew: float) -> np.ndarray:
@@ -23,8 +24,14 @@ class RandomDataUtils:
         Returns:
             np.ndarray: An array of normalized probabilities (weights) that sum to 1.
         """
-        # TODO: Calculate inverse power-law weights for n ranks using the given skew, then normalize to sum to 1
-        pass
+        if n <= 0:
+            raise ValueError("n must be greater than 0")
+        if skew < 0:
+            raise ValueError("skew must be non-negative")
+
+        ranks = np.arange(1, n + 1, dtype=np.float64)
+        weights = 1.0 / np.power(ranks, skew)
+        return weights / weights.sum()
 
     def sample_zipf(self, ids: List[Any], size: int, skew: float) -> List[Any]:
         """
@@ -36,8 +43,15 @@ class RandomDataUtils:
         Returns:
             List[Any]: A list of length 'size' containing sampled items.
         """
-        # TODO: Generate zipf weights for len(ids), then use self.rng.choice to sample 'size' elements from 'ids'
-        pass
+        if size < 0:
+            raise ValueError("size must be non-negative")
+        if size == 0:
+            return []
+        if len(ids) == 0 and size > 0:
+            raise ValueError("ids must not be empty when size is greater than 0")
+
+        weights = self.zipf_weights(len(ids), skew)
+        return self.rng.choice(ids, size=size, replace=True, p=weights).tolist()
 
     def bernoulli(self, p: float) -> bool:
         """
@@ -47,8 +61,10 @@ class RandomDataUtils:
         Returns:
             bool: True if the trial succeeds, False otherwise.
         """
-        # TODO: Return True with probability p, False with probability 1-p using self.rng
-        pass
+        if not 0.0 <= p <= 1.0:
+            raise ValueError("p must be between 0.0 and 1.0")
+
+        return bool(self.rng.random() < p)
 
     def inject_duplicates(self, df: pd.DataFrame, rate: float, key_cols: List[str]) -> pd.DataFrame:
         """
@@ -60,8 +76,25 @@ class RandomDataUtils:
         Returns:
             pd.DataFrame: A new DataFrame with the injected duplicate rows appended and shuffled.
         """
-        # TODO: Randomly sample 'rate' proportion of rows from df, optionally modify their timestamps slightly, and append them back to df
-        pass
+        if not 0.0 <= rate <= 1.0:
+            raise ValueError("rate must be between 0.0 and 1.0")
+        missing_cols = [col for col in key_cols if col not in df.columns]
+        if missing_cols:
+            raise KeyError(f"Missing key columns: {missing_cols}")
+
+        duplicate_count = int(round(len(df) * rate))
+        if duplicate_count == 0:
+            return df.copy()
+
+        duplicate_positions = self.rng.choice(
+            len(df),
+            size=duplicate_count,
+            replace=duplicate_count > len(df),
+        )
+        duplicates = df.iloc[duplicate_positions].copy()
+        combined = pd.concat([df, duplicates], ignore_index=True)
+        shuffled_positions = self.rng.permutation(len(combined))
+        return combined.iloc[shuffled_positions].reset_index(drop=True)
 
     def generate_late_timestamps(self, ts: datetime, rate: float, delay_min: int, delay_max: int) -> datetime:
         """
@@ -74,8 +107,16 @@ class RandomDataUtils:
         Returns:
             datetime: The (potentially delayed) created timestamp.
         """
-        # TODO: Use bernoulli(rate) to decide if late. If yes, add a random delay between delay_min and delay_max hours to ts.
-        pass
+        if delay_min < 0 or delay_max < 0:
+            raise ValueError("delay_min and delay_max must be non-negative")
+        if delay_min > delay_max:
+            raise ValueError("delay_min must be less than or equal to delay_max")
+
+        if not self.bernoulli(rate):
+            return ts
+
+        delay_hours = int(self.rng.integers(delay_min, delay_max + 1))
+        return ts + timedelta(hours=delay_hours)
 
     def summary(self) -> str:
         """
@@ -83,5 +124,5 @@ class RandomDataUtils:
         Returns:
             str: Description of the utility class state.
         """
-        # TODO: Return a string indicating the state, e.g. whether a seed is set
-        pass
+        seed_state = self.seed if self.seed is not None else "None"
+        return f"RandomDataUtils(seed={seed_state})"
