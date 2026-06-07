@@ -143,6 +143,7 @@ class OfflineDataGenerator:
                 user_ids=user_ids,
                 video_ids=video_ids,
                 n_sessions=n_sessions,
+                playback_end=self._playback_end_date(),
                 seed=seed,
             ),
         )
@@ -183,6 +184,8 @@ class OfflineDataGenerator:
                 playback_history_df=playback_history_df,
                 n_impressions=n_impressions,
                 ad_click_rate=self.config.get("ad_click_rate", 0.03),
+                playback_start=self._playback_start_date(),
+                playback_end=self._playback_end_date(),
                 seed=seed,
             ),
         )
@@ -203,7 +206,24 @@ class OfflineDataGenerator:
         return output_paths
 
     def _schema_change_date(self) -> date:
-        value = self.config.get("schema_change_date", "2026-01-29")
+        value = self.config.get("schema_change_date", "2026-04-01")
+        return self._parse_date(value)
+
+    def _playback_start_date(self) -> date:
+        value = self.config.get(
+            "playback_start",
+            self.config.get("start_date", "2025-04-01"),
+        )
+        return self._parse_date(value)
+
+    def _playback_end_date(self) -> date:
+        value = self.config.get(
+            "playback_end",
+            self.config.get("end_date", "2026-01-31"),
+        )
+        return self._parse_date(value)
+
+    def _parse_date(self, value) -> date:
         if isinstance(value, date):
             return value
         return date.fromisoformat(value)

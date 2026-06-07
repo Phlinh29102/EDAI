@@ -24,7 +24,7 @@ def test_offline_data_generator_generates_and_saves_all_tables(tmp_path):
         "skew_ratio_popularity": 0.8,
         "skew_ratio_genre": 0.75,
         "duplicate_rate_offline": 0.0,
-        "schema_change_date": "2026-01-29",
+        "schema_change_date": "2026-04-01",
         "random_seed": 42,
     }
     config_path.write_text(yaml.dump(config_data))

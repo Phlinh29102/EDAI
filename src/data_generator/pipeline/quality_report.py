@@ -137,7 +137,7 @@ class QualityReport:
                 click_count = int(df["clicked"].sum())
                 metrics["ctr"] = float(round(click_count / len(df) * 100, 2))
             if "playback_date" in df.columns and self.config is not None:
-                schema_change = self.config.get("schema_change_date", "2026-01-29")
+                schema_change = self.config.get("schema_change_date", "2026-04-01")
                 if isinstance(schema_change, str):
                     schema_change_date = datetime.fromisoformat(schema_change).date()
                 else:

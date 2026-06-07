@@ -13,12 +13,12 @@ def test_ad_impression_generator_outputs_expected_schema_and_ranges(
     generator = AdImpressionGenerator(
         advertiser_id_pool=3,
         cost_nanos_range=(500_000_000, 5_000_000_000),
-        schema_change_date=date(2026, 1, 29),
+        schema_change_date=date(2026, 4, 1),
         user_ids=sample_users_df["user_id"].tolist(),
         video_ids=sample_videos_df["video_id"].tolist(),
         n_impressions=40,
-        playback_start=date(2026, 1, 29),
-        playback_end=date(2026, 2, 15),
+        playback_start=date(2026, 4, 1),
+        playback_end=date(2026, 4, 18),
         seed=7,
     )
 
@@ -51,16 +51,16 @@ def test_ad_impression_generator_applies_schema_evolution():
     generator = AdImpressionGenerator(
         advertiser_id_pool=2,
         cost_nanos_range=(1, 10),
-        schema_change_date=date(2026, 1, 29),
+        schema_change_date=date(2026, 4, 1),
         n_impressions=100,
-        playback_start=date(2026, 1, 1),
-        playback_end=date(2026, 2, 15),
+        playback_start=date(2026, 3, 4),
+        playback_end=date(2026, 4, 18),
         seed=42,
     )
 
     df = generator.generate()
-    before_change = df[df["playback_date"] < date(2026, 1, 29)]
-    after_change = df[df["playback_date"] >= date(2026, 1, 29)]
+    before_change = df[df["playback_date"] < date(2026, 4, 1)]
+    after_change = df[df["playback_date"] >= date(2026, 4, 1)]
 
     assert not before_change.empty
     assert not after_change.empty
@@ -76,7 +76,7 @@ def test_ad_impression_generator_summary_includes_configuration():
     generator = AdImpressionGenerator(
         advertiser_id_pool=75,
         cost_nanos_range=(500_000_000, 5_000_000_000),
-        schema_change_date=date(2026, 1, 29),
+        schema_change_date=date(2026, 4, 1),
         n_impressions=10,
         seed=42,
     )
@@ -86,7 +86,7 @@ def test_ad_impression_generator_summary_includes_configuration():
     assert summary["generator"] == "AdImpressionGenerator"
     assert summary["advertiser_id_pool"] == 75
     assert summary["cost_nanos_range"] == (500_000_000, 5_000_000_000)
-    assert summary["schema_change_date"] == "2026-01-29"
+    assert summary["schema_change_date"] == "2026-04-01"
     assert summary["n_impressions"] == 10
     assert summary["seed"] == 42
 
@@ -111,7 +111,7 @@ def test_ad_impression_generator_rejects_invalid_arguments(kwargs, error):
     params = {
         "advertiser_id_pool": 1,
         "cost_nanos_range": (1, 10),
-        "schema_change_date": date(2026, 1, 29),
+        "schema_change_date": date(2026, 4, 1),
     }
     params.update(kwargs)
 

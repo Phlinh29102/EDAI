@@ -16,7 +16,7 @@ churn_rate_baseline: 0.145
 duplicate_rate_offline: 0.0
 duplicate_rate_stream: 0.0
 
-schema_change_date: "2026-01-29"
+schema_change_date: "2026-04-01"
 
 base_events_per_min: 100
 burst_multiplier: 5

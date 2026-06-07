@@ -49,7 +49,7 @@ def streaming_config(tmp_path) -> GeneratorConfig:
                 "burst_multiplier": 3,
                 "burst_windows": ["20:00-20:30"],
                 "ad_click_rate": 0.0,
-                "schema_change_date": "2026-01-29",
+                "schema_change_date": "2026-04-01",
                 "random_seed": 42,
             }
         )
@@ -127,8 +127,8 @@ def test_playback_start_pause_and_skip_positions(streaming_config, user_ctx):
 def test_ad_impression_schema_evolution(streaming_config, user_ctx):
     generator = AdImpressionEventGenerator(streaming_config, RandomDataUtils(seed=42))
 
-    before_change = generator.generate_event(user_ctx, datetime(2026, 1, 28, 12, 0, 0))
-    after_change = generator.generate_event(user_ctx, datetime(2026, 1, 29, 12, 0, 0))
+    before_change = generator.generate_event(user_ctx, datetime(2026, 3, 31, 12, 0, 0))
+    after_change = generator.generate_event(user_ctx, datetime(2026, 4, 1, 12, 0, 0))
 
     assert before_change["midpoint"] is None
     assert before_change["third_quartile"] is None
@@ -144,7 +144,7 @@ def test_late_arrivals_delay_created_timestamp(tmp_path, user_ctx):
             {
                 "late_arrival_rate": 1.0,
                 "late_delay_min_max": [1, 1],
-                "schema_change_date": "2026-01-29",
+                "schema_change_date": "2026-04-01",
             }
         )
     )
@@ -170,7 +170,7 @@ def test_stream_data_generator_applies_bursts_and_duplicates(tmp_path, user_ctx)
                 "burst_multiplier": 3,
                 "burst_windows": ["20:00-20:30"],
                 "ad_click_rate": 0.0,
-                "schema_change_date": "2026-01-29",
+                "schema_change_date": "2026-04-01",
             }
         )
     )
@@ -230,7 +230,7 @@ def test_stream_data_generator_emits_ad_click_after_ad_impression(tmp_path, user
                 "burst_multiplier": 1,
                 "burst_windows": [],
                 "ad_click_rate": 1.0,
-                "schema_change_date": "2026-01-29",
+                "schema_change_date": "2026-04-01",
             }
         )
     )

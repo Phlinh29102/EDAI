@@ -113,7 +113,7 @@ def test_feature_engineer_merges_and_saves_unified_features(tmp_path):
                 "burst_multiplier": 1,
                 "burst_windows": [],
                 "ad_click_rate": 0.0,
-                "schema_change_date": "2026-01-29",
+                "schema_change_date": "2026-04-01",
                 "feature_burst_threshold_events_60m": 2,
             }
         )

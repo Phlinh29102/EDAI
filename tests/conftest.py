@@ -27,7 +27,7 @@ def dummy_config(tmp_path) -> GeneratorConfig:
         "skew_ratio_genre": 0.75,
         "churn_rate_baseline": 0.145,
         "duplicate_rate_offline": 0.02,
-        "schema_change_date": "2026-01-29",
+        "schema_change_date": "2026-04-01",
         "base_events_per_min": 100,
         "burst_multiplier": 5,
         "burst_windows": ["20:00-20:30"],
@@ -66,6 +66,7 @@ def sample_playback_history_df(
         user_ids=sample_users_df["user_id"].tolist(),
         video_ids=sample_videos_df["video_id"].tolist(),
         n_sessions=50,
+        playback_end=date(2026, 4, 8),
         seed=42,
     ).generate()
 
@@ -97,7 +98,7 @@ def sample_ad_impressions_df(
     return AdImpressionGenerator(
         advertiser_id_pool=10,
         cost_nanos_range=(500_000_000, 5_000_000_000),
-        schema_change_date=date(2026, 1, 29),
+        schema_change_date=date(2026, 4, 1),
         user_ids=sample_users_df["user_id"].tolist(),
         video_ids=sample_videos_df["video_id"].tolist(),
         playback_history_df=sample_playback_history_df,

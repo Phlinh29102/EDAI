@@ -1,6 +1,7 @@
 """Smoke test: run offline and streaming pipeline outputs with config/test.yaml."""
 from datetime import datetime
 from pathlib import Path
+import yaml
 
 import pyarrow.parquet as pq
 
@@ -12,7 +13,17 @@ from data_generator.streaming.stream_data_generator import StreamDataGenerator
 
 
 def test_pipeline_smoke_with_test_config_without_features(tmp_path):
-    config = GeneratorConfig(Path("config/test.yaml"))
+    with open("config/test.yaml") as f:
+        config_data = yaml.safe_load(f)
+
+    config_data["schema_change_date"] = "2026-04-01"
+    config_data["playback_start"] = "2026-03-04"
+    config_data["playback_end"] = "2026-04-08"
+    config_data["start_date"] = "2026-03-04"
+    config_data["end_date"] = "2026-04-08"
+    test_config_path = tmp_path / "test.yaml"
+    test_config_path.write_text(yaml.dump(config_data))
+    config = GeneratorConfig(test_config_path)
     schema = DataSchema()
     offline_output_path = tmp_path / "offline"
     offline_generator = OfflineDataGenerator(
@@ -78,13 +89,13 @@ def test_pipeline_smoke_with_test_config_without_features(tmp_path):
     )
 
     stream_events = stream_generator.generate_events(
-        start_ts=datetime(2026, 2, 1, 12, 0, 0),
+        start_ts=datetime(2026, 4, 5, 12, 0, 0),
         minutes=1,
         user_contexts=user_contexts,
     )
     stream_paths = stream_generator.save_avro(stream_events)
 
-    assert set(stream_paths) == {"2026020112"}
+    assert set(stream_paths) == {"2026040512"}
     assert all(Path(path).read_bytes().startswith(b"Obj\x01") for path in stream_paths.values())
     assert len(stream_events) >= config.get("base_events_per_min") * 3
 
