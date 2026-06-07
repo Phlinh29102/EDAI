@@ -37,4 +37,6 @@ random_seed: 42
 data_dir:
   offline: data/offline
   streaming: data/streaming
+  bronze: data/bronze
+  bronze_streaming: data/bronze/raw_media_events
   features: data/features

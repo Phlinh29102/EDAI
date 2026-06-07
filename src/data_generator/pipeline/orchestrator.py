@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from data_generator.bronze.offline_ingest import OfflineBronzeIngestor
 from data_generator.core.config import GeneratorConfig
 from data_generator.core.schema import DataSchema
 from data_generator.core.utils import RandomDataUtils
@@ -34,6 +35,10 @@ class PipelineOrchestrator:
             output_path=data_dir.get("streaming", "data/streaming"),
             schema=schema,
         )
+        self.offline_bronze = OfflineBronzeIngestor(
+            source_path=data_dir.get("offline", "data/offline"),
+            output_path=data_dir.get("bronze", "data/bronze"),
+        )
         self.feature_eng = FeatureEngineer(self.config)
 
     def run_offline(
@@ -51,6 +56,17 @@ class PipelineOrchestrator:
             Dict[str, str]: Mapping of table name to written Parquet path.
         """
         return self.offline_gen.generate_all()
+
+    def run_offline_bronze(self, batch_id: Optional[str] = None) -> Dict[str, str]:
+        """Ingest generated offline Parquet tables into Bronze raw tables.
+
+        Args:
+            batch_id: Optional stable batch id for the ingestion run.
+
+        Returns:
+            Dict[str, str]: Mapping of source table name to Bronze Parquet path.
+        """
+        return self.offline_bronze.ingest_all(batch_id=batch_id)
 
     def run_streaming(self, run_duration: int) -> Dict[str, str]:
         """Generate and save streaming events.
@@ -96,10 +112,12 @@ class PipelineOrchestrator:
             Dict[str, Any]: Paths for all outputs.
         """
         offline_paths = self.run_offline(start_date, end_date)
+        offline_bronze_paths = self.run_offline_bronze()
         stream_paths = self.run_streaming(run_duration)
         feature_path = self.run_feature_engineering()
         return {
             "offline": offline_paths,
+            "offline_bronze": offline_bronze_paths,
             "streaming": stream_paths,
             "features": feature_path,
         }
@@ -114,6 +132,7 @@ class PipelineOrchestrator:
             "orchestrator": self.__class__.__name__,
             "config_path": str(self.config.config_path),
             "offline": self.offline_gen.summary(),
+            "offline_bronze": self.offline_bronze.summary(),
             "streaming": self.stream_gen.summary(),
             "features": self.feature_eng.summary(),
         }

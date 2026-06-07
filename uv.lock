@@ -59,7 +59,7 @@ wheels = [
 [[package]]
 name = "coursework"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "confluent-kafka" },
     { name = "faker" },
