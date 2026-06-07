@@ -1,0 +1,74 @@
+============================================================
+QUALITY REPORT
+Generated: 2026-06-07T14:34:52.094425+00:00
+============================================================
+
+--- USERS ---
+  Rows: 2,500
+  Distinct users: 2,500
+  Subscription distribution:
+    free: 49.1%
+    basic: 24.5%
+    premium: 15.5%
+    family: 11.0%
+
+--- VIDEOS ---
+  Rows: 1,000
+  Distinct videos: 1,000
+  Genre skew:
+    Top: Action (27.5%)
+    Bottom 3 genres combined: 15.600000000000001%
+
+--- PLAYBACK_HISTORY ---
+  Rows: 25,500
+  Distinct users: 2,452
+  Distinct videos: 999
+  Duplicate rate (key: history_id):
+    Before dedup: 1.96%
+    After dedup:  0.0%
+  Popularity skew:
+    Top 20% videos account for 65.0% of views
+
+--- INTERACTIONS ---
+  Rows: 15,300
+  Distinct users: 2,408
+  Duplicate rate (key: interaction_id):
+    Before dedup: 1.96%
+    After dedup:  0.0%
+  Interaction type distribution:
+    like: 60.9%
+    comment: 18.5%
+    share: 12.2%
+    dislike: 8.4%
+
+--- AD_IMPRESSIONS ---
+  Rows: 10,000
+  Distinct users: 2,337
+  Distinct videos: 978
+  CTR: 3.09%
+
+--- STREAMING ---
+  Events: 87,417
+  Distinct users: 2,500
+  Distinct videos: 1,000
+  Duplicate rate (key: event_id):
+    Before dedup: 1.96%
+    After dedup:  0.0%
+  Late arrivals: 16.75% (14,641 events)
+    Delay hours -> min: 0.0, max: 48.0, mean: 22.03
+  Burst analysis:
+    Baseline events/min: 963
+    Peak events/min: 1034
+    Burst multiplier: 1.1x
+  Event type distribution:
+    playback_start: 27,532 (31.5%)
+    ad_impression: 27,525 (31.5%)
+    pause: 17,849 (20.4%)
+    skip: 9,708 (11.1%)
+    subscription_cancel: 3,987 (4.6%)
+    ad_click: 816 (0.9%)
+
+--- FEATURES ---
+  Rows: 2,500
+
+============================================================

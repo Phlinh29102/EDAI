@@ -18,7 +18,7 @@ churn_rate_baseline: 0.145
 duplicate_rate_offline: 0.02
 duplicate_rate_stream: 0.02
 
-schema_change_date: "2025-12-15"
+schema_change_date: "2025-04-01"
 
 base_events_per_min: 300
 burst_multiplier: 5
@@ -30,7 +30,7 @@ late_delay_min_max: [1, 48]
 feature_early_skip_seconds: 10
 feature_burst_threshold_events_60m: 20
 
-run_duration_minutes: 15
+run_duration_minutes: 90
 
 random_seed: 42
 

@@ -38,3 +38,6 @@ Edit `config/default.yaml` to control data volume, skew, burst windows, and feat
 | Streaming events | Avro | `data/streaming/hour=YYYYMMDDHH/events.avro` |
 | Features | Parquet | `data/features/refresh_ts={ts}/features.parquet` |
 | Quality report | Text | `data/reports/quality_report.txt` |
+
+
+**I'm so busy this week so I didn't have time to finish the phase 2 in time :)**
