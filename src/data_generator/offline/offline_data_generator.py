@@ -206,7 +206,7 @@ class OfflineDataGenerator:
         return output_paths
 
     def _schema_change_date(self) -> date:
-        value = self.config.get("schema_change_date", "2026-04-01")
+        value = self.config.get("schema_change_date", "2025-04-01")
         return self._parse_date(value)
 
     def _playback_start_date(self) -> date:

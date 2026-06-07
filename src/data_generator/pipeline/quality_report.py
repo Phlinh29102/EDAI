@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from coursework.core.config import GeneratorConfig
+from data_generator.core.config import GeneratorConfig
 
 
 class QualityReport:
@@ -137,7 +137,7 @@ class QualityReport:
                 click_count = int(df["clicked"].sum())
                 metrics["ctr"] = float(round(click_count / len(df) * 100, 2))
             if "playback_date" in df.columns and self.config is not None:
-                schema_change = self.config.get("schema_change_date", "2026-04-01")
+                schema_change = self.config.get("schema_change_date", "2025-12-15")
                 if isinstance(schema_change, str):
                     schema_change_date = datetime.fromisoformat(schema_change).date()
                 else:
